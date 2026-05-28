@@ -24,6 +24,7 @@ def render(dataset, embedding_bundle) -> None:
     score = compare_listings(
         anchor_embeddings=embedding_bundle['anchor_embeddings'],
         description_embeddings=embedding_bundle['description_embeddings'],
+        dataset=dataset,
         left_listing_id=int(left_row['listing_id']),
         right_listing_id=int(right_row['listing_id']),
     )

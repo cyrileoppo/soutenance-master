@@ -9,6 +9,10 @@ from services.retrieval_service import semantic_search
 from utils.constants import TOP_K
 
 
+def _normalize_bm25_score(score: float, max_score: float) -> float:
+    return min(float(score) / max(max_score, 1e-6), 1.0)
+
+
 def render(dataset, embedding_bundle, bm25_index, model_path: str) -> None:
     st.title('BM25 vs Semantic Retrieval')
     st.caption('The same listing is used as a query for both retrieval systems so the jury can immediately compare lexical overlap with semantic understanding.')
@@ -38,8 +42,9 @@ def render(dataset, embedding_bundle, bm25_index, model_path: str) -> None:
 
     left, right = st.columns(2)
     with left:
+        max_score = float(bm25_results['bm25_score'].max()) if not bm25_results.empty else 1.0
         for rank, (_, row) in enumerate(bm25_results.iterrows(), start=1):
-            normalized_score = min(float(row['bm25_score']) / max(float(bm25_results['bm25_score'].max()), 1e-6), 1.0)
+            normalized_score = _normalize_bm25_score(float(row['bm25_score']), max_score)
             row = row.copy()
             row['bm25_score'] = normalized_score
             render_result_card(row, rank, score_column='bm25_score')

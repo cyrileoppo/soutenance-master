@@ -61,7 +61,7 @@ The fine-tuned model is intentionally not versioned in Git. Configure a locally 
 Expected examples:
 
 - `/content/drive/MyDrive/final_model`
-- `G:/Mon Drive/final_model`
+- `G:/My Drive/final_model`
 - `/Users/name/Library/CloudStorage/GoogleDrive/final_model`
 
 The application loads the model directly with `SentenceTransformer(MODEL_PATH)`.

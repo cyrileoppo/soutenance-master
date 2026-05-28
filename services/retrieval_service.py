@@ -9,6 +9,13 @@ from services.embedding_service import encode_query
 from services.similarity_service import cosine_scores, cosine_similarity
 
 
+def _embedding_position(dataset: pd.DataFrame, listing_id: int) -> int:
+    matches = dataset.index[dataset['listing_id'] == listing_id]
+    if matches.empty:
+        raise KeyError(f'Unknown listing_id: {listing_id}')
+    return int(matches[0])
+
+
 def semantic_search(
     model_path: str,
     dataset: pd.DataFrame,
@@ -32,7 +39,7 @@ def nearest_neighbors(
     listing_id: int,
     top_k: int,
 ) -> pd.DataFrame:
-    query_embedding = profile_embeddings[listing_id]
+    query_embedding = profile_embeddings[_embedding_position(dataset, listing_id)]
     scores = cosine_scores(query_embedding, profile_embeddings)
     ranked = dataset.copy()
     ranked['similarity'] = scores
@@ -43,9 +50,12 @@ def nearest_neighbors(
 def compare_listings(
     anchor_embeddings: np.ndarray,
     description_embeddings: np.ndarray,
+    dataset: pd.DataFrame,
     left_listing_id: int,
     right_listing_id: int,
 ) -> float:
-    left_to_right = cosine_similarity(anchor_embeddings[left_listing_id], description_embeddings[right_listing_id])
-    right_to_left = cosine_similarity(anchor_embeddings[right_listing_id], description_embeddings[left_listing_id])
+    left_position = _embedding_position(dataset, left_listing_id)
+    right_position = _embedding_position(dataset, right_listing_id)
+    left_to_right = cosine_similarity(anchor_embeddings[left_position], description_embeddings[right_position])
+    right_to_left = cosine_similarity(anchor_embeddings[right_position], description_embeddings[left_position])
     return float((left_to_right + right_to_left) / 2.0)

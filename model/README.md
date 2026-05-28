@@ -11,5 +11,5 @@ SentenceTransformer(MODEL_PATH)
 Typical examples:
 
 - `/content/drive/MyDrive/final_model`
-- `G:/Mon Drive/final_model`
+- `G:/My Drive/final_model`
 - `/Users/name/Library/CloudStorage/GoogleDrive/final_model`
