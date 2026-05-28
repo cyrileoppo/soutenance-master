@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import glob
 import os
+import zipfile
 from pathlib import Path
 
 import pandas as pd
@@ -36,7 +37,7 @@ def _ensure_model_available(model_path: str) -> str:
         return str(download_dest)
 
     raise FileNotFoundError(
-        f'Modèle introuvable à {model_path} et le téléchargement depuis Google Drive a échoué. '
+        f'Modèle introuvable \u00e0 {model_path} et le téléchargement depuis Google Drive a échoué. '
         f'Vérifiez que le dossier Drive est partagé publiquement ou fournissez un MODEL_PATH valide.'
     )
 
@@ -48,17 +49,50 @@ def load_model(model_path: str) -> SentenceTransformer:
     return SentenceTransformer(resolved_path)
 
 
-@st.cache_resource(show_spinner='Chargement du dataset depuis Kaggle...')
-def load_dataset() -> pd.DataFrame:
-    """Charge le dataset réel depuis Kaggle (kanchana1990/real-estate-data-london-2024)."""
-    import kagglehub
+def _download_kaggle_dataset() -> str:
+    """Télécharge le dataset depuis Kaggle via l'API officielle.
 
-    path = kagglehub.dataset_download(KAGGLE_DATASET)
-    csv_files = glob.glob(os.path.join(path, '*.csv'))
+    Utilise la commande kaggle CLI en fallback si l'API Python ne fonctionne pas.
+    Nécessite un fichier ~/.kaggle/kaggle.json avec vos identifiants.
+    """
+    from utils.constants import ROOT_DIR
+
+    download_dir = ROOT_DIR / 'data' / 'kaggle_download'
+    download_dir.mkdir(parents=True, exist_ok=True)
+
+    # Vérifier si déjà téléchargé
+    existing_csvs = glob.glob(os.path.join(str(download_dir), '*.csv'))
+    if existing_csvs:
+        return existing_csvs[0]
+
+    try:
+        # Méthode 1 : API Kaggle Python
+        from kaggle.api.kaggle_api_extended import KaggleApi
+        api = KaggleApi()
+        api.authenticate()
+        api.dataset_download_files(KAGGLE_DATASET, path=str(download_dir), unzip=True)
+    except Exception:
+        # Méthode 2 : opendatasets
+        try:
+            import opendatasets as od
+            od.download(f'https://www.kaggle.com/datasets/{KAGGLE_DATASET}', data_dir=str(download_dir))
+        except Exception:
+            # Méthode 3 : kaggle CLI
+            os.system(f'kaggle datasets download -d {KAGGLE_DATASET} -p {download_dir} --unzip')
+
+    # Chercher le CSV (peut être dans un sous-dossier)
+    csv_files = glob.glob(os.path.join(str(download_dir), '**', '*.csv'), recursive=True)
     if not csv_files:
         raise FileNotFoundError(
             f'Aucun fichier CSV trouvé après téléchargement du dataset Kaggle ({KAGGLE_DATASET}). '
-            f'Vérifiez vos identifiants Kaggle et votre connexion internet.'
+            f'Vérifiez vos identifiants Kaggle (~/.kaggle/kaggle.json) et votre connexion internet.'
         )
-    df = pd.read_csv(csv_files[0])
+    return csv_files[0]
+
+
+@st.cache_resource(show_spinner='Chargement du dataset depuis Kaggle...')
+def load_dataset() -> pd.DataFrame:
+    """Charge le dataset réel depuis Kaggle (kanchana1990/real-estate-data-london-2024)."""
+    csv_path = _download_kaggle_dataset()
+    df = pd.read_csv(csv_path)
     return prepare_dataset(df)

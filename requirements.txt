@@ -9,5 +9,5 @@ plotly
 matplotlib
 umap-learn
 beautifulsoup4
-kagglehub
+kaggle
 gdown
