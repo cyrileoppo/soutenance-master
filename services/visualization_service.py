@@ -44,8 +44,8 @@ def build_embedding_figure(projection: pd.DataFrame):
     fig.update_layout(
         margin={'l': 0, 'r': 0, 't': 16, 'b': 0},
         legend_title_text='',
-        xaxis_title='UMAP dimension 1',
-        yaxis_title='UMAP dimension 2',
+        xaxis_title='Dimension UMAP 1',
+        yaxis_title='Dimension UMAP 2',
         paper_bgcolor='rgba(0,0,0,0)',
         plot_bgcolor='rgba(15,23,42,0.35)',
     )

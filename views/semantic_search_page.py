@@ -9,12 +9,12 @@ from utils.constants import PIPELINE_STAGES, TOP_K
 
 
 def render(dataset, embedding_bundle, model_path: str) -> None:
-    st.title('Semantic Property Retrieval')
-    st.caption('Select an existing London listing, encode it with the fine-tuned bi-encoder, and retrieve the nearest semantic neighbours instantly.')
+    st.title('Recherche Sémantique d\u2019Annonces')
+    st.caption('Sélectionnez une annonce londonienne existante, encodez-la avec le bi-encodeur fine-tuné et retrouvez instantanément les voisins sémantiques les plus proches.')
 
     options = dataset['title'].tolist()
-    selected_title = st.selectbox('Choose a reference listing', options, index=0)
-    if st.button('Pick a random listing'):
+    selected_title = st.selectbox('Choisir une annonce de référence', options, index=0)
+    if st.button('Annonce aléatoire \U0001f3b2'):
         selected_title = dataset.sample(1, random_state=None)['title'].iloc[0]
         st.session_state['semantic_selected_title'] = selected_title
     selected_title = st.session_state.get('semantic_selected_title', selected_title)
@@ -24,10 +24,10 @@ def render(dataset, embedding_bundle, model_path: str) -> None:
 
     with st.container(border=True):
         st.markdown(f"### {selected_row['title']}")
-        st.caption(f"{selected_row['propertyType']} • {selected_row['bedrooms']} bed • {selected_row['bathrooms']} bath • {selected_row['sizeSqFeetMax']} sqft • {selected_row['price']}")
+        st.caption(f"{selected_row['propertyType']} \u2022 {selected_row['bedrooms']} ch. \u2022 {selected_row['bathrooms']} sdb \u2022 {selected_row['sizeSqFeetMax']} sqft \u2022 {selected_row['price']}")
         st.write(selected_row['clean_description'])
 
-    if st.button('Find Semantic Matches', type='primary'):
+    if st.button('Trouver les correspondances sémantiques', type='primary'):
         render_pipeline(PIPELINE_STAGES)
         results = semantic_search(
             model_path=model_path,
@@ -37,6 +37,6 @@ def render(dataset, embedding_bundle, model_path: str) -> None:
             top_k=TOP_K,
             exclude_listing_id=int(selected_row['listing_id']),
         )
-        st.markdown('### Top semantic matches')
+        st.markdown('### Meilleures correspondances sémantiques')
         for rank, (_, row) in enumerate(results.iterrows(), start=1):
             render_result_card(row, rank)

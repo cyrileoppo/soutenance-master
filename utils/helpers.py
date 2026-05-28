@@ -16,22 +16,22 @@ def parse_price(value: str) -> int:
 def price_range_label(value: str) -> str:
     amount = parse_price(value)
     if amount < 600_000:
-        return 'Below £600k'
+        return 'Moins de \u00a3600k'
     if amount < 1_000_000:
-        return '£600k - £999k'
+        return '\u00a3600k - \u00a3999k'
     if amount < 1_500_000:
-        return '£1.0m - £1.49m'
+        return '\u00a31.0m - \u00a31.49m'
     if amount < 2_000_000:
-        return '£1.5m - £1.99m'
-    return '£2.0m+'
+        return '\u00a31.5m - \u00a31.99m'
+    return '\u00a32.0m+'
 
 
 def similarity_verdict(score: float) -> str:
     if score >= 0.85:
-        return 'Highly similar'
+        return 'Très similaire'
     if score >= 0.65:
-        return 'Moderately similar'
-    return 'Unrelated'
+        return 'Modérément similaire'
+    return 'Non relié'
 
 
 def safe_int(value: Any) -> int:

@@ -9,15 +9,11 @@ import streamlit as st
 from sentence_transformers import SentenceTransformer
 
 from services.preprocessing_service import prepare_dataset
-from utils.constants import GDRIVE_FOLDER_ID, MODEL_CACHE_DIR
+from utils.constants import GDRIVE_FOLDER_ID, KAGGLE_DATASET, MODEL_CACHE_DIR
 
 
 def _download_model_from_gdrive(destination: Path) -> None:
-    """Download the fine-tuned model folder from Google Drive using gdown.
-
-    The folder must be shared publicly (anyone with the link).
-    Downloads all files in the folder to the destination directory.
-    """
+    """Télécharge le dossier du modèle fine-tuné depuis Google Drive via gdown."""
     import gdown
 
     destination.mkdir(parents=True, exist_ok=True)
@@ -26,18 +22,13 @@ def _download_model_from_gdrive(destination: Path) -> None:
 
 
 def _ensure_model_available(model_path: str) -> str:
-    """Ensure the model is available locally, downloading from Drive if needed.
-
-    Returns the path to use for SentenceTransformer loading.
-    """
+    """S'assure que le modèle est disponible localement, le télécharge depuis Drive si nécessaire."""
     path = Path(model_path)
 
-    # Check if the model is already available locally
     if path.exists() and any(path.iterdir()):
         return str(path)
 
-    # If MODEL_PATH points to a non-existent location, try downloading
-    st.info('⬇️ Downloading fine-tuned model from Google Drive (first run only)...')
+    st.info('\u2b07\ufe0f Téléchargement du modèle fine-tuné depuis Google Drive (premier lancement uniquement)...')
     download_dest = MODEL_CACHE_DIR
     _download_model_from_gdrive(download_dest)
 
@@ -45,41 +36,29 @@ def _ensure_model_available(model_path: str) -> str:
         return str(download_dest)
 
     raise FileNotFoundError(
-        f'Model not found at {model_path} and download from Google Drive failed. '
-        f'Please ensure the Drive folder is publicly shared or provide a valid MODEL_PATH.'
+        f'Modèle introuvable à {model_path} et le téléchargement depuis Google Drive a échoué. '
+        f'Vérifiez que le dossier Drive est partagé publiquement ou fournissez un MODEL_PATH valide.'
     )
 
 
-@st.cache_resource(show_spinner='Loading fine-tuned model...')
+@st.cache_resource(show_spinner='Chargement du modèle fine-tuné...')
 def load_model(model_path: str) -> SentenceTransformer:
-    """Load the SentenceTransformer model, downloading from Drive if necessary."""
+    """Charge le modèle SentenceTransformer, le télécharge depuis Drive si nécessaire."""
     resolved_path = _ensure_model_available(model_path)
     return SentenceTransformer(resolved_path)
 
 
-@st.cache_resource(show_spinner=False)
-def load_dataset(csv_path: str) -> pd.DataFrame:
-    """Load dataset from Kaggle (preferred) or fall back to local CSV.
+@st.cache_resource(show_spinner='Chargement du dataset depuis Kaggle...')
+def load_dataset() -> pd.DataFrame:
+    """Charge le dataset réel depuis Kaggle (kanchana1990/real-estate-data-london-2024)."""
+    import kagglehub
 
-    Tries to download the real London real estate dataset from Kaggle using
-    kagglehub. If that fails (no credentials, no network, etc.), falls back
-    to the local sample CSV file.
-    """
-    df = _try_load_from_kaggle()
-    if df is None:
-        df = pd.read_csv(Path(csv_path))
+    path = kagglehub.dataset_download(KAGGLE_DATASET)
+    csv_files = glob.glob(os.path.join(path, '*.csv'))
+    if not csv_files:
+        raise FileNotFoundError(
+            f'Aucun fichier CSV trouvé après téléchargement du dataset Kaggle ({KAGGLE_DATASET}). '
+            f'Vérifiez vos identifiants Kaggle et votre connexion internet.'
+        )
+    df = pd.read_csv(csv_files[0])
     return prepare_dataset(df)
-
-
-def _try_load_from_kaggle() -> pd.DataFrame | None:
-    """Attempt to download and load the real dataset from Kaggle."""
-    try:
-        import kagglehub
-
-        path = kagglehub.dataset_download('kanchana1990/real-estate-data-london-2024')
-        csv_files = glob.glob(os.path.join(path, '*.csv'))
-        if csv_files:
-            return pd.read_csv(csv_files[0])
-    except Exception:
-        pass
-    return None

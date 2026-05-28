@@ -17,13 +17,13 @@ def render_result_card(row: pd.Series, rank: int, score_column: str = 'similarit
                 </div>
                 <div class='result-badges'>
                     <span>{row['propertyType']}</span>
-                    <span>{row['bedrooms']} bed</span>
-                    <span>{row['bathrooms']} bath</span>
+                    <span>{row['bedrooms']} ch.</span>
+                    <span>{row['bathrooms']} sdb</span>
                 </div>
             </div>
             """,
             unsafe_allow_html=True,
         )
         st.write(row['clean_description'])
-        render_similarity_bar(float(row[score_column]), 'Cosine similarity' if score_column == 'similarity' else 'BM25 score (rescaled)')
-        st.caption(f"{row['sizeSqFeetMax']} sqft • {row['price']}")
+        render_similarity_bar(float(row[score_column]), 'Similarité cosinus' if score_column == 'similarity' else 'Score BM25 (normalisé)')
+        st.caption(f"{row['sizeSqFeetMax']} sqft \u2022 {row['price']}")

@@ -9,14 +9,14 @@ from utils.helpers import similarity_verdict
 
 
 def render(dataset, embedding_bundle) -> None:
-    st.title('Live Similarity Analyzer')
-    st.caption('Compare two listings live and inspect a calibrated semantic similarity score derived from the trained anchor/description geometry.')
+    st.title('Analyseur de Similarité en Direct')
+    st.caption('Comparez deux annonces en temps réel et inspectez un score de similarité sémantique calibré, dérivé de la géométrie ancre/description entraînée.')
 
     left_col, right_col = st.columns(2)
     with left_col:
-        left_title = st.selectbox('Listing A', dataset['title'].tolist(), index=0)
+        left_title = st.selectbox('Annonce A', dataset['title'].tolist(), index=0)
     with right_col:
-        right_title = st.selectbox('Listing B', dataset['title'].tolist(), index=5)
+        right_title = st.selectbox('Annonce B', dataset['title'].tolist(), index=5)
 
     left_row = dataset.loc[dataset['title'] == left_title].iloc[0]
     right_row = dataset.loc[dataset['title'] == right_title].iloc[0]
@@ -33,8 +33,8 @@ def render(dataset, embedding_bundle) -> None:
 
     metric_col, gauge_col = st.columns([1, 1.2])
     with metric_col:
-        st.metric('Cosine similarity', f'{score:.3f}')
-        st.metric('Vector distance', f'{distance:.3f}')
+        st.metric('Similarité cosinus', f'{score:.3f}')
+        st.metric('Distance vectorielle', f'{distance:.3f}')
         st.markdown(f"<div class='verdict-pill'>{verdict}</div>", unsafe_allow_html=True)
     with gauge_col:
         fig = go.Figure(go.Indicator(
@@ -57,9 +57,9 @@ def render(dataset, embedding_bundle) -> None:
     compare_left, compare_right = st.columns(2)
     with compare_left:
         st.markdown(f"### {left_row['title']}")
-        st.caption(f"{left_row['propertyType']} • {left_row['bedrooms']} bed • {left_row['price']}")
+        st.caption(f"{left_row['propertyType']} \u2022 {left_row['bedrooms']} ch. \u2022 {left_row['price']}")
         st.write(left_row['clean_description'])
     with compare_right:
         st.markdown(f"### {right_row['title']}")
-        st.caption(f"{right_row['propertyType']} • {right_row['bedrooms']} bed • {right_row['price']}")
+        st.caption(f"{right_row['propertyType']} \u2022 {right_row['bedrooms']} ch. \u2022 {right_row['price']}")
         st.write(right_row['clean_description'])

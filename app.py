@@ -3,17 +3,17 @@ from __future__ import annotations
 import streamlit as st
 
 from services.model_loader import load_dataset
-from utils.constants import ASSETS_PATH, COLOR_OPTIONS, DATA_PATH, MODEL_PATH
+from utils.constants import ASSETS_PATH, COLOR_OPTIONS, MODEL_PATH
 from utils.cache import get_cached_bm25, get_cached_embeddings
 from views import embedding_space_page, limitations_page, semantic_search_page, semantic_vs_lexical_page, similarity_analyzer_page
 
 
 PAGES = {
-    'Semantic Property Retrieval': semantic_search_page,
-    'BM25 vs Semantic Retrieval': semantic_vs_lexical_page,
-    'Embedding Space Explorer': embedding_space_page,
-    'Live Similarity Analyzer': similarity_analyzer_page,
-    'Model Limitations': limitations_page,
+    'Recherche sémantique': semantic_search_page,
+    'BM25 vs Sémantique': semantic_vs_lexical_page,
+    'Espace d\u2019embeddings': embedding_space_page,
+    'Analyseur de similarité': similarity_analyzer_page,
+    'Limites du modèle': limitations_page,
 }
 
 
@@ -22,33 +22,33 @@ def inject_styles() -> None:
 
 
 def main() -> None:
-    st.set_page_config(page_title='London Real Estate Semantic Search Demo', page_icon='🏙️', layout='wide')
+    st.set_page_config(page_title='Recherche Sémantique Immobilière - Soutenance Master', page_icon='\U0001f3d9\ufe0f', layout='wide')
     inject_styles()
 
-    st.sidebar.title('Master Thesis Demo')
-    st.sidebar.caption('Fine-tuned BGE-base-en-v1.5 bi-encoder for semantic property retrieval in London real estate.')
-    model_path = st.sidebar.text_input('Mounted Google Drive model path', value=MODEL_PATH)
-    page_name = st.sidebar.radio('Navigate', list(PAGES.keys()))
-    st.sidebar.info('The app expects a locally mounted Google Drive path that can be passed directly to SentenceTransformer(MODEL_PATH).')
+    st.sidebar.title('Soutenance Master 2')
+    st.sidebar.caption('Bi-encodeur BGE-base-en-v1.5 fine-tuné pour la recherche sémantique d\u2019annonces immobilières londoniennes.')
+    model_path = st.sidebar.text_input('Chemin du modèle (Google Drive)', value=MODEL_PATH)
+    page_name = st.sidebar.radio('Navigation', list(PAGES.keys()))
+    st.sidebar.info('L\u2019application charge le modèle depuis un chemin Google Drive local. Vous pouvez aussi définir la variable d\u2019environnement MODEL_PATH.')
 
-    dataset = load_dataset(str(DATA_PATH))
+    dataset = load_dataset()
 
     try:
-        embedding_bundle = get_cached_embeddings(model_path, str(DATA_PATH))
-        bm25_index = get_cached_bm25(str(DATA_PATH))
-    except Exception as exc:  # pragma: no cover - Streamlit runtime branch
-        st.error('The model could not be loaded from the configured Google Drive path.')
+        embedding_bundle = get_cached_embeddings(model_path)
+        bm25_index = get_cached_bm25()
+    except Exception as exc:
+        st.error('Le modèle n\u2019a pas pu être chargé depuis le chemin Google Drive configuré.')
         st.exception(exc)
         st.stop()
 
     page = PAGES[page_name]
-    if page_name == 'Semantic Property Retrieval':
+    if page_name == 'Recherche sémantique':
         page.render(dataset=dataset, embedding_bundle=embedding_bundle, model_path=model_path)
-    elif page_name == 'BM25 vs Semantic Retrieval':
+    elif page_name == 'BM25 vs Sémantique':
         page.render(dataset=dataset, embedding_bundle=embedding_bundle, bm25_index=bm25_index, model_path=model_path)
-    elif page_name == 'Embedding Space Explorer':
+    elif page_name == 'Espace d\u2019embeddings':
         page.render(dataset=dataset, embedding_bundle=embedding_bundle)
-    elif page_name == 'Live Similarity Analyzer':
+    elif page_name == 'Analyseur de similarité':
         page.render(dataset=dataset, embedding_bundle=embedding_bundle)
     else:
         page.render(dataset=dataset, embedding_bundle=embedding_bundle, model_path=model_path)

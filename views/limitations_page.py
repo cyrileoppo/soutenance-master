@@ -8,8 +8,8 @@ from utils.constants import LIMITATION_QUERIES, TOP_K
 
 
 def render(dataset, embedding_bundle, model_path: str) -> None:
-    st.title('Model Limitations')
-    st.caption('These controlled failure cases show why the encoder is domain-specialized, English-only for this task, and not a general-purpose multilingual LLM.')
+    st.title('Limites du Modèle')
+    st.caption('Ces cas d\u2019échec contrôlés montrent pourquoi l\u2019encodeur est spécialisé sur un domaine, anglophone uniquement, et n\u2019est pas un LLM multilingue généraliste.')
 
     for example in LIMITATION_QUERIES:
         with st.container(border=True):
@@ -23,17 +23,17 @@ def render(dataset, embedding_bundle, model_path: str) -> None:
                 top_k=TOP_K,
             )
             max_similarity = float(results['similarity'].max()) if not results.empty else 0.0
-            st.metric('Best cosine similarity', f'{max_similarity:.3f}')
+            st.metric('Meilleure similarité cosinus', f'{max_similarity:.3f}')
             st.write(example['explanation'])
             for rank, (_, row) in enumerate(results.iterrows(), start=1):
                 render_result_card(row, rank)
 
     st.markdown(
         """
-        ### Scientific explanation
-        - **Domain specialization**: fine-tuning pushed the encoder toward London residential property semantics.
-        - **Distribution shift**: Parisian geography, pricing conventions, and French syntax move the query away from the training distribution.
-        - **No multilingual support in this setup**: the model was optimized on English-only listings, so cross-lingual transfer is weak and unreliable.
-        - **Not an LLM**: it maps texts into vectors for retrieval; it does not reason, translate, or generate explanations autonomously.
+        ### Explication scientifique
+        - **Spécialisation de domaine** : le fine-tuning a orienté l\u2019encodeur vers la sémantique de l\u2019immobilier résidentiel londonien.
+        - **Décalage de distribution** : la géographie parisienne, les conventions de prix et la syntaxe française éloignent la requête de la distribution d\u2019entraînement.
+        - **Pas de support multilingue** : le modèle a été optimisé uniquement sur des annonces en anglais, le transfert cross-lingue est donc faible et peu fiable.
+        - **Ce n\u2019est pas un LLM** : il projette les textes en vecteurs pour la recherche ; il ne raisonne pas, ne traduit pas et ne génère pas d\u2019explications de manière autonome.
         """
     )

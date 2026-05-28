@@ -14,13 +14,13 @@ def _normalize_bm25_score(score: float, max_score: float) -> float:
 
 
 def render(dataset, embedding_bundle, bm25_index, model_path: str) -> None:
-    st.title('BM25 vs Semantic Retrieval')
-    st.caption('The same listing is used as a query for both retrieval systems so the jury can immediately compare lexical overlap with semantic understanding.')
+    st.title('BM25 vs Recherche Sémantique')
+    st.caption('La même annonce est utilisée comme requête pour les deux systèmes afin de comparer immédiatement la correspondance lexicale avec la compréhension sémantique.')
 
-    selected_title = st.selectbox('Comparison query listing', dataset['title'].tolist(), index=1)
+    selected_title = st.selectbox('Annonce de comparaison', dataset['title'].tolist(), index=1)
     selected_row = dataset.loc[dataset['title'] == selected_title].iloc[0]
 
-    st.markdown(f"**Query anchor**  \n`{selected_row['rich_anchor']}`")
+    st.markdown(f"**Ancre de requête**  \n`{selected_row['rich_anchor']}`")
 
     bm25_results = bm25_search(
         bm25_index=bm25_index,
