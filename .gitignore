@@ -1,2 +1,25 @@
 __pycache__/
 *.py[cod]
+
+# Modèle fine-tuné (trop lourd pour Git, chargé depuis Google Drive)
+model/final_model/
+model/*.safetensors
+model/*.bin
+model/*.pt
+*.safetensors
+*.bin
+
+# Dataset Kaggle téléchargé localement
+data/kaggle_download/
+
+# Environnement virtuel
+.venv/
+venv/
+env/
+
+# IDE
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
