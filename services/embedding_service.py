@@ -1,11 +1,18 @@
 from __future__ import annotations
 
+import json
+from pathlib import Path
 from typing import Any
 
 import numpy as np
 import pandas as pd
 
 from services.model_loader import load_model
+from utils.constants import ROOT_DIR
+
+
+# Chemin du cache CSV contenant dataset + embeddings
+EMBEDDINGS_CACHE_PATH = ROOT_DIR / 'data' / 'dataset_with_embeddings.csv'
 
 
 def _normalize_rows(matrix: np.ndarray) -> np.ndarray:
@@ -14,7 +21,50 @@ def _normalize_rows(matrix: np.ndarray) -> np.ndarray:
     return matrix / norms
 
 
+def _embeddings_to_json_col(embeddings: np.ndarray) -> list[str]:
+    """Convertit une matrice d'embeddings en liste de strings JSON pour stockage CSV."""
+    return [json.dumps(row.tolist()) for row in embeddings]
+
+
+def _json_col_to_embeddings(series: pd.Series) -> np.ndarray:
+    """Convertit une colonne JSON en matrice numpy d'embeddings."""
+    return np.array([json.loads(s) for s in series], dtype=float)
+
+
+def embeddings_cache_exists() -> bool:
+    """Vérifie si le cache CSV avec embeddings existe et contient les colonnes nécessaires."""
+    if not EMBEDDINGS_CACHE_PATH.exists():
+        return False
+    try:
+        # Lire juste le header pour vérifier les colonnes
+        df = pd.read_csv(EMBEDDINGS_CACHE_PATH, nrows=0)
+        required_cols = {'anchor_embedding', 'description_embedding', 'profile_embedding'}
+        return required_cols.issubset(set(df.columns))
+    except Exception:
+        return False
+
+
+def load_cached_embeddings_and_dataset() -> tuple[pd.DataFrame, dict[str, Any]]:
+    """Charge le dataset et les embeddings depuis le cache CSV."""
+    df = pd.read_csv(EMBEDDINGS_CACHE_PATH)
+
+    anchor_embeddings = _json_col_to_embeddings(df['anchor_embedding'])
+    description_embeddings = _json_col_to_embeddings(df['description_embedding'])
+    profile_embeddings = _json_col_to_embeddings(df['profile_embedding'])
+
+    # Retirer les colonnes d'embeddings du dataset pour l'usage normal
+    dataset = df.drop(columns=['anchor_embedding', 'description_embedding', 'profile_embedding'])
+
+    embedding_bundle = {
+        'anchor_embeddings': anchor_embeddings,
+        'description_embeddings': description_embeddings,
+        'profile_embeddings': profile_embeddings,
+    }
+    return dataset, embedding_bundle
+
+
 def compute_corpus_embeddings(model_path: str, dataset: pd.DataFrame) -> dict[str, Any]:
+    """Calcule les embeddings du corpus et les retourne."""
     model = load_model(model_path)
     anchor_embeddings = model.encode(dataset['anchor_text'].tolist(), normalize_embeddings=True)
     description_embeddings = model.encode(dataset['description_text'].tolist(), normalize_embeddings=True)
@@ -24,6 +74,22 @@ def compute_corpus_embeddings(model_path: str, dataset: pd.DataFrame) -> dict[st
         'description_embeddings': np.asarray(description_embeddings, dtype=float),
         'profile_embeddings': np.asarray(profile_embeddings, dtype=float),
     }
+
+
+def compute_and_save_embeddings(model_path: str, dataset: pd.DataFrame) -> dict[str, Any]:
+    """Calcule les embeddings puis sauvegarde le tout dans un CSV pour les prochains lancements."""
+    embedding_bundle = compute_corpus_embeddings(model_path, dataset)
+
+    # Créer le CSV avec dataset + embeddings
+    df_to_save = dataset.copy()
+    df_to_save['anchor_embedding'] = _embeddings_to_json_col(embedding_bundle['anchor_embeddings'])
+    df_to_save['description_embedding'] = _embeddings_to_json_col(embedding_bundle['description_embeddings'])
+    df_to_save['profile_embedding'] = _embeddings_to_json_col(embedding_bundle['profile_embeddings'])
+
+    EMBEDDINGS_CACHE_PATH.parent.mkdir(parents=True, exist_ok=True)
+    df_to_save.to_csv(EMBEDDINGS_CACHE_PATH, index=False)
+
+    return embedding_bundle
 
 
 def encode_query(model_path: str, text: str) -> np.ndarray:

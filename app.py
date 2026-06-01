@@ -2,9 +2,8 @@ from __future__ import annotations
 
 import streamlit as st
 
-from services.model_loader import load_dataset
-from utils.constants import ASSETS_PATH, COLOR_OPTIONS, MODEL_PATH
-from utils.cache import get_cached_bm25, get_cached_embeddings
+from utils.constants import ASSETS_PATH, MODEL_PATH
+from utils.cache import get_cached_bm25, get_cached_dataset_and_embeddings
 from views import embedding_space_page, limitations_page, semantic_search_page, semantic_vs_lexical_page, similarity_analyzer_page
 
 
@@ -31,13 +30,11 @@ def main() -> None:
     page_name = st.sidebar.radio('Navigation', list(PAGES.keys()))
     st.sidebar.info('L\u2019application charge le modèle depuis un chemin Google Drive local. Vous pouvez aussi définir la variable d\u2019environnement MODEL_PATH.')
 
-    dataset = load_dataset()
-
     try:
-        embedding_bundle = get_cached_embeddings(model_path)
-        bm25_index = get_cached_bm25()
+        dataset, embedding_bundle = get_cached_dataset_and_embeddings(model_path)
+        bm25_index = get_cached_bm25(dataset)
     except Exception as exc:
-        st.error('Le modèle n\u2019a pas pu être chargé depuis le chemin Google Drive configuré.')
+        st.error('Erreur lors du chargement des données ou du modèle.')
         st.exception(exc)
         st.stop()
 
