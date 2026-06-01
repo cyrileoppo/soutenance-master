@@ -11,8 +11,8 @@ from services.model_loader import load_model
 from utils.constants import ROOT_DIR
 
 
-# Chemin du cache CSV contenant dataset + embeddings
-EMBEDDINGS_CACHE_PATH = ROOT_DIR / 'data' / 'dataset_with_embeddings.csv'
+# Chemin du cache Parquet contenant dataset + embeddings
+EMBEDDINGS_CACHE_PATH = ROOT_DIR / 'data' / 'dataset_with_embeddings.parquet'
 
 
 def _normalize_rows(matrix: np.ndarray) -> np.ndarray:
@@ -21,56 +21,26 @@ def _normalize_rows(matrix: np.ndarray) -> np.ndarray:
     return matrix / norms
 
 
-def _embeddings_to_json_col(embeddings: np.ndarray) -> list[str]:
-    """Convertit une matrice d'embeddings en liste de strings JSON pour stockage CSV."""
-    return [json.dumps(row.tolist()) for row in embeddings]
-
-
-def _json_col_to_embeddings(series: pd.Series) -> np.ndarray:
-    """Convertit une colonne JSON en matrice numpy d'embeddings."""
-    result = []
-    for value in series:
-        if isinstance(value, str):
-            result.append(json.loads(value))
-        elif isinstance(value, (int, float)):
-            # Valeur corrompue/NaN - ne devrait pas arriver
-            raise ValueError(
-                f'Colonne d\'embedding corrompue (valeur numérique au lieu de JSON). '
-                f'Supprimez data/dataset_with_embeddings.csv et relancez l\'app pour recalculer.'
-            )
-        else:
-            result.append(json.loads(str(value)))
-    return np.array(result, dtype=float)
-
-
 def embeddings_cache_exists() -> bool:
-    """Vérifie si le cache CSV avec embeddings existe et contient les colonnes nécessaires."""
+    """Vérifie si le cache Parquet avec embeddings existe."""
     if not EMBEDDINGS_CACHE_PATH.exists():
         return False
     try:
-        # Lire juste les premières lignes pour vérifier
-        df = pd.read_csv(EMBEDDINGS_CACHE_PATH, nrows=2)
-        required_cols = {'anchor_embedding', 'description_embedding', 'profile_embedding'}
-        if not required_cols.issubset(set(df.columns)):
-            return False
-        # Vérifier que les colonnes contiennent bien du JSON (str commençant par '[')
-        sample = df['anchor_embedding'].iloc[0]
-        if not isinstance(sample, str) or not sample.startswith('['):
-            return False
-        return True
+        df = pd.read_parquet(EMBEDDINGS_CACHE_PATH, columns=['anchor_embedding'])
+        return len(df) > 0
     except Exception:
         return False
 
 
 def load_cached_embeddings_and_dataset() -> tuple[pd.DataFrame, dict[str, Any]]:
-    """Charge le dataset et les embeddings depuis le cache CSV."""
-    df = pd.read_csv(EMBEDDINGS_CACHE_PATH)
+    """Charge le dataset et les embeddings depuis le cache Parquet."""
+    df = pd.read_parquet(EMBEDDINGS_CACHE_PATH)
 
-    anchor_embeddings = _json_col_to_embeddings(df['anchor_embedding'])
-    description_embeddings = _json_col_to_embeddings(df['description_embedding'])
-    profile_embeddings = _json_col_to_embeddings(df['profile_embedding'])
+    # Les colonnes d'embeddings sont stockées comme listes Python dans Parquet
+    anchor_embeddings = np.array(df['anchor_embedding'].tolist(), dtype=float)
+    description_embeddings = np.array(df['description_embedding'].tolist(), dtype=float)
+    profile_embeddings = np.array(df['profile_embedding'].tolist(), dtype=float)
 
-    # Retirer les colonnes d'embeddings du dataset pour l'usage normal
     dataset = df.drop(columns=['anchor_embedding', 'description_embedding', 'profile_embedding'])
 
     embedding_bundle = {
@@ -95,17 +65,17 @@ def compute_corpus_embeddings(model_path: str, dataset: pd.DataFrame) -> dict[st
 
 
 def compute_and_save_embeddings(model_path: str, dataset: pd.DataFrame) -> dict[str, Any]:
-    """Calcule les embeddings puis sauvegarde le tout dans un CSV pour les prochains lancements."""
+    """Calcule les embeddings puis sauvegarde le tout en Parquet pour les prochains lancements."""
     embedding_bundle = compute_corpus_embeddings(model_path, dataset)
 
-    # Créer le CSV avec dataset + embeddings
     df_to_save = dataset.copy()
-    df_to_save['anchor_embedding'] = _embeddings_to_json_col(embedding_bundle['anchor_embeddings'])
-    df_to_save['description_embedding'] = _embeddings_to_json_col(embedding_bundle['description_embeddings'])
-    df_to_save['profile_embedding'] = _embeddings_to_json_col(embedding_bundle['profile_embeddings'])
+    # Stocker les embeddings comme listes Python (Parquet les gère nativement)
+    df_to_save['anchor_embedding'] = list(embedding_bundle['anchor_embeddings'])
+    df_to_save['description_embedding'] = list(embedding_bundle['description_embeddings'])
+    df_to_save['profile_embedding'] = list(embedding_bundle['profile_embeddings'])
 
     EMBEDDINGS_CACHE_PATH.parent.mkdir(parents=True, exist_ok=True)
-    df_to_save.to_csv(EMBEDDINGS_CACHE_PATH, index=False)
+    df_to_save.to_parquet(EMBEDDINGS_CACHE_PATH, index=False)
 
     return embedding_bundle
 

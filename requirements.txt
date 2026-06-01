@@ -11,3 +11,4 @@ umap-learn
 beautifulsoup4
 kaggle
 gdown
+pyarrow
