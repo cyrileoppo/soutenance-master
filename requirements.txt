@@ -1,0 +1,14 @@
+streamlit
+sentence-transformers
+torch
+pandas
+numpy
+scikit-learn
+rank-bm25
+plotly
+matplotlib
+umap-learn
+beautifulsoup4
+kaggle
+gdown
+pyarrow
