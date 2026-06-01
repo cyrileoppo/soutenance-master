@@ -24,6 +24,7 @@ def semantic_search(
     top_k: int,
     exclude_listing_id: int | None = None,
 ) -> pd.DataFrame:
+    """Recherche semantique. Le modele est charge depuis le cache Streamlit via model_path."""
     query_embedding = encode_query(model_path, query_text)
     scores = cosine_scores(query_embedding, description_embeddings)
     ranked = dataset.copy()
