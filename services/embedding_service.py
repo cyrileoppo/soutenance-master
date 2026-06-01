@@ -28,7 +28,19 @@ def _embeddings_to_json_col(embeddings: np.ndarray) -> list[str]:
 
 def _json_col_to_embeddings(series: pd.Series) -> np.ndarray:
     """Convertit une colonne JSON en matrice numpy d'embeddings."""
-    return np.array([json.loads(s) for s in series], dtype=float)
+    result = []
+    for value in series:
+        if isinstance(value, str):
+            result.append(json.loads(value))
+        elif isinstance(value, (int, float)):
+            # Valeur corrompue/NaN - ne devrait pas arriver
+            raise ValueError(
+                f'Colonne d\'embedding corrompue (valeur numérique au lieu de JSON). '
+                f'Supprimez data/dataset_with_embeddings.csv et relancez l\'app pour recalculer.'
+            )
+        else:
+            result.append(json.loads(str(value)))
+    return np.array(result, dtype=float)
 
 
 def embeddings_cache_exists() -> bool:
@@ -36,10 +48,16 @@ def embeddings_cache_exists() -> bool:
     if not EMBEDDINGS_CACHE_PATH.exists():
         return False
     try:
-        # Lire juste le header pour vérifier les colonnes
-        df = pd.read_csv(EMBEDDINGS_CACHE_PATH, nrows=0)
+        # Lire juste les premières lignes pour vérifier
+        df = pd.read_csv(EMBEDDINGS_CACHE_PATH, nrows=2)
         required_cols = {'anchor_embedding', 'description_embedding', 'profile_embedding'}
-        return required_cols.issubset(set(df.columns))
+        if not required_cols.issubset(set(df.columns)):
+            return False
+        # Vérifier que les colonnes contiennent bien du JSON (str commençant par '[')
+        sample = df['anchor_embedding'].iloc[0]
+        if not isinstance(sample, str) or not sample.startswith('['):
+            return False
+        return True
     except Exception:
         return False
 
